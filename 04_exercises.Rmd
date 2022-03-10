@@ -106,7 +106,7 @@ ggmap(worldmap) +
   geom_point(data = Starbucks,
              aes(x = Longitude, y = Latitude, color = `Ownership Type`),
              alpha = 0.3,
-             size = 0.1) +
+             size = 0.2) +
   theme_map()
 ```
   
@@ -186,11 +186,6 @@ ggmap(metromap) +
   theme_map() 
 ```
   
-  
-
-annotate 
-x = -93.16
-y = 44.93
 
 ### Choropleth maps with Starbucks data (`geom_map()`)
 
@@ -210,8 +205,41 @@ starbucks_with_2018_pop_est <-
 ```
 
   6. **`dplyr` review**: Look through the code above and describe what each line of code does.
+The first line reads in the census population data. The state name field originally had a period preceding the state name that was capitalized. That variable was then split into two new variables where the period was removed and the state name was changed to all lowercase. Then the original starbucks by us state was left joined with the population data by using the common variable of state name and state. The per 10,000 metric was taken by dividing by the total starbucks by 10,000.   
+  
+  
 
   7. Create a choropleth map that shows the number of Starbucks per 10,000 people on a map of the US. Use a new fill color, add points for all Starbucks in the US (except Hawaii and Alaska), add an informative title for the plot, and include a caption that says who created the plot (you!). Make a conclusion about what you observe.
+
+```{r}
+states_map <- map_data("state")
+starbucks_us <- Starbucks %>% 
+  filter(Country == "US") %>% 
+  filter(`State/Province` != "AK") %>% 
+  filter(`State/Province` != "HI")
+
+starbucks_with_2018_pop_est %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state_name,
+               fill = starbucks_per_10000)) +
+  scale_fill_viridis_c(option = "magma") +
+  expand_limits(x = states_map$long, y = states_map$lat) +
+  theme_map()+ 
+  geom_point(data = starbucks_us,
+             aes(x = Longitude, y = Latitude,
+                 color = `Ownership Type`),
+             alpha = 0.6,
+             size = 1.5) +
+  theme(legend.background = element_blank()) +
+  labs(title = "Density of Starbucks per 10,000 in Each State and Their Locations",
+       caption = "Map created by Rachel Percy (2022)")
+
+```
+  
+Starbucks per 10,000 is greatest on the west coast. Most starbucks are found along the west coast and the eastern half of the country. Colorado is an anomaly.  
+  
+  
 
 ### A few of your favorite things (`leaflet`)
 
@@ -224,6 +252,21 @@ starbucks_with_2018_pop_est <-
   * Connect all your locations together with a line in a meaningful way (you may need to order them differently in the original data).  
   
   * If there are other variables you want to add that could enhance your plot, do that now.  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
 ## Revisiting old datasets
 
