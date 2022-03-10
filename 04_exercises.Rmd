@@ -253,6 +253,38 @@ Starbucks per 10,000 is greatest on the west coast. Most starbucks are found alo
   
   * If there are other variables you want to add that could enhance your plot, do that now.  
   
+```{r}
+fav_places <- tibble(
+  place = c("Mississippi River Overlook", "Cathedral of Saint Paul", "Minnehaha Regional Park",
+            "Butt Seat", "Macalester Track", "Highland Golf Course",
+            "Lake of the Isles", "Lake Harriet", "Lake Bde Maka Ska", "Stone Arch Bridge"),
+  lat = c(44.94168, 44.94696, 44.9151,
+          44.94844, 44.93530, 44.9159,
+          44.9556, 44.9220, 44.9421, 44.98051),
+  long = c(-93.19851, -93.10923, -93.2105,
+           -93.20538, -93.16840, -93.1619,
+           -93.3071, -93.3054, -93.3120, -93.25372),
+  top_three = c(TRUE, TRUE, FALSE,
+                FALSE, FALSE, FALSE,
+                TRUE, FALSE, FALSE, FALSE)
+)
+
+leaflet(data = fav_places) %>% 
+  addProviderTiles(providers$Stamen.Terrain) %>% 
+  addCircles(lng = ~long, 
+             lat = ~lat, 
+             label = ~place, 
+             weight = 10, 
+             opacity = 1, 
+             color = col2hex("magenta"))   %>% 
+  addPolylines(lng = ~long, 
+               lat = ~lat, 
+               color = col2hex("darkred")) %>% 
+  #addLegend(colors = col2hex("magenta"),
+            #values = ~place,
+            #position = "bottomright") %>% 
+  labs(title = "Rachel's Top 10 Most Visited Running Sites")
+```
   
   
   
