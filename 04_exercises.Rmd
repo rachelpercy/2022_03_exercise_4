@@ -12,7 +12,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -106,8 +106,10 @@ ggmap(worldmap) +
   geom_point(data = Starbucks,
              aes(x = Longitude, y = Latitude, color = `Ownership Type`),
              alpha = 0.3,
-             size = 0.2) +
-  theme_map()
+             size = 0.5) +
+  theme_map() +
+  labs(title = "Ownership Types of Starbucks Around the World",
+       color = "")
 ```
   
 Looking at the legend, it seems that each region of the world is characterized mostly by one or two types of ownership. FOr example, North America is dominated by company-owned and licensed stores whereas East Asia is dominated by company-owned and joint-venture stores.
@@ -129,7 +131,8 @@ ggmap(metromap) +
              alpha = 0.6,
              size = 2) +
   theme_map() +
-  theme(legend.background = element_blank())
+  theme(legend.background = element_blank()) +
+  labs(title = "Starbucks Locations in the Twin Cities")
 ```
   
   
@@ -155,7 +158,8 @@ ggmap(metromap) +
                  color = `Ownership Type`),
              alpha = 0.6,
              size = 2) +
-  theme_map() 
+  theme_map() +
+  labs(title = "Starbucks Locations in the Twin Cities")
 ```
   
 
@@ -205,7 +209,8 @@ starbucks_with_2018_pop_est <-
 ```
 
   6. **`dplyr` review**: Look through the code above and describe what each line of code does.
-The first line reads in the census population data. The state name field originally had a period preceding the state name that was capitalized. That variable was then split into two new variables where the period was removed and the state name was changed to all lowercase. Then the original starbucks by us state was left joined with the population data by using the common variable of state name and state. The per 10,000 metric was taken by dividing by the total starbucks by 10,000.   
+  
+> The first line reads in the census population data. The state name field originally had a period preceding the state name that was capitalized. That variable was then split into two new variables where the period was removed and the state name was changed to all lowercase. Then the original starbucks by us state was left joined with the population data by using the common variable of state name and state. The per 10,000 metric was taken by dividing by the total starbucks by 10,000.   
   
   
 
@@ -341,9 +346,9 @@ ggmap(dcmap) +
                  color = dep_from_station),
              alpha = 1,
              size = 2) +
-  scale_color_viridis_c()
-
-
+  scale_color_viridis_c() +
+  labs(title = "Total Departures from Bike Stations \nin Washington D.C.",
+       color = "")
 ```
   
   10. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? Also plot this on top of a map. I think it will be more clear what the patterns are.
@@ -371,7 +376,9 @@ ggmap(dcmap) +
                  color = prop_casual),
              alpha = 1,
              size = 2) +
-  scale_color_viridis_c()
+  scale_color_viridis_c() +
+  labs(title = "Percentage of Departures from Casual Users",
+       color = "")
 ```
   
 I am not that familiar with the D.C. area, but based on the openstreetmap it looks like the points are mostly concentrated by the National Mall, which makes sense because that is a popular tourist spot with lots of museums that people visit.
@@ -382,7 +389,66 @@ The following exercises will use the COVID-19 data from the NYT.
 
   11. Create a map that colors the states by the most recent cumulative number of COVID-19 cases (remember, these data report cumulative numbers so you don't need to compute that). Describe what you see. What is the problem with this map?
   
+```{r}
+states_map <- map_data("state")
+
+recent_covid <- covid19 %>% 
+  group_by(state) %>% 
+  filter(date == max(date), .preserve = FALSE) %>% 
+  mutate(state_name = str_to_lower(`state`))
+
+recent_covid %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state_name,
+               fill = cases)) +
+  scale_fill_viridis_c(option = "magma") +
+  expand_limits(x = states_map$long, y = states_map$lat) +
+  theme_map() +
+  labs(title = "Cumulative COVID-19 Cases in the U.S. (As of March 2022)",
+       fill = "")
+
+
+```
+
+The states with large populations have the most cases, naturally. So this map does not take into account how population affects COVID case numbers.
+  
   12. Now add the population of each state to the dataset and color the states by most recent cumulative cases/10,000 people. See the code for doing this with the Starbucks data. You will need to make some modifications. 
+  
+```{r}
+states_map <- map_data("state")
+
+census_pop_est_2018 <- read_csv("https://www.dropbox.com/s/6txwv3b4ng7pepe/us_census_2018_state_pop_est.csv?dl=1") %>% 
+  separate(state, into = c("dot","state"), extra = "merge") %>% 
+  select(-dot) %>% 
+  mutate(state = str_to_lower(state))
+
+recent_covid <- covid19 %>% 
+  group_by(state) %>% 
+  filter(date == max(date), .preserve = FALSE) %>% 
+  mutate(state_name = str_to_lower(`state`))
+
+recent_covid_wpop <-
+  recent_covid %>% 
+  left_join(census_pop_est_2018,
+            by = c("state_name" = "state")) %>% 
+  mutate(covid_per_10000 = (cases/est_pop_2018)*10000)
+
+recent_covid_wpop %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state_name,
+               fill = covid_per_10000)) +
+   scale_fill_viridis_c(option = "magma") +
+  expand_limits(x = states_map$long, y = states_map$lat) +
+  theme_map() +
+  labs(title = "Cumulative COVID-19 Cases in the U.S. per 10,000 \n(As of March 2022)",
+       fill = "")
+
+
+```
+  
+  
   
   13. **CHALLENGE** Choose 4 dates spread over the time period of the data and create the same map as in exercise 12 for each of the dates. Display the four graphs together using faceting. What do you notice?
   
@@ -392,17 +458,92 @@ These exercises use the datasets `MplsStops` and `MplsDemo` from the `carData` l
 
   14. Use the `MplsStops` dataset to find out how many stops there were for each neighborhood and the proportion of stops that were for a suspicious vehicle or person. Sort the results from most to least number of stops. Save this as a dataset called `mpls_suspicious` and display the table.  
   
+```{r}
+data(MplsStops)
+
+Mpls_susp <- MplsStops %>% 
+  group_by(neighborhood) %>% 
+  summarise(sum_stops = n(),
+            prop_susp = mean(problem == "suspicious")) %>% 
+  arrange(desc(sum_stops))
+
+Mpls_susp
+```
+  
+  
+  
   15. Use a `leaflet` map and the `MplsStops` dataset to display each of the stops on a map as a small point. Color the points differently depending on whether they were for suspicious vehicle/person or a traffic stop (the `problem` variable). HINTS: use `addCircleMarkers`, set `stroke = FAlSE`, use `colorFactor()` to create a palette.  
+  
+```{r}
+pal_stops <-colorFactor("viridis",
+                        domain = MplsStops$problem)
+
+leaflet(data = MplsStops) %>% 
+  addProviderTiles(providers$Stamen.Terrain) %>% 
+  addCircleMarkers(lng = ~long,
+             lat = ~lat,
+             label = ~problem,
+             color = ~pal_stops(problem),
+             stroke = FALSE,
+             radius = 2) %>%
+  addLegend(position = "bottomleft",
+            pal = pal_stops,
+            values = ~problem)
+```
+
   
   16. Save the folder from moodle called Minneapolis_Neighborhoods into your project/repository folder for this assignment. Make sure the folder is called Minneapolis_Neighborhoods. Use the code below to read in the data and make sure to **delete the `eval=FALSE`**. Although it looks like it only links to the .sph file, you need the entire folder of files to create the `mpls_nbhd` data set. These data contain information about the geometries of the Minneapolis neighborhoods. Using the `mpls_nbhd` dataset as the base file, join the `mpls_suspicious` and `MplsDemo` datasets to it by neighborhood (careful, they are named different things in the different files). Call this new dataset `mpls_all`.
 
-```{r, eval=FALSE}
+```{r}
 mpls_nbhd <- st_read("Minneapolis_Neighborhoods/Minneapolis_Neighborhoods.shp", quiet = TRUE)
+
+mpls_first <- mpls_nbhd %>% 
+  left_join(Mpls_susp, by=c("BDNAME"="neighborhood"))
+
+mpls_all <- mpls_first %>% 
+  left_join(MplsDemo, by=c("BDNAME"="neighborhood"))
 ```
 
   17. Use `leaflet` to create a map from the `mpls_all` data  that colors the neighborhoods by `prop_suspicious`. Display the neighborhood name as you scroll over it. Describe what you observe in the map.
   
+```{r}
+pal_all <- colorNumeric("viridis",
+                        domain = mpls_all$prop_susp)
+
+leaflet(data = mpls_all) %>% 
+  addProviderTiles(providers$Stamen.Terrain) %>% 
+  addPolygons(label = ~ BDNAME,
+             fillColor = ~pal_all(prop_susp),
+             fillOpacity = 0.7) %>% 
+  addLegend(position = "bottomright", 
+            pal = pal_all, 
+            values = ~prop_susp,
+            title = "Proportion of <Br>Suspicious Stops")
+
+```
+  
+There appears to be a higher proportion of suspicious stops in southeast Minneapolis as well as around the downtown area. I am surprised that around the lakes proportion of suspicious stops vary. I would assume that in such wealthy neighborhoods suspicious stops would be less frequent.  
+  
+  
   18. Use `leaflet` to create a map of your own choosing. Come up with a question you want to try to answer and use the map to help answer that question. Describe what your map shows. 
+  
+Which neighborhood has the highest proportion of foreign born residents? Is there clustering around certain regions of the city, or is there no pattern? It would be interesting to pair this with age data to see if there is any correlation.
+
+```{r}
+pal_all <- colorNumeric("viridis",
+                        domain = mpls_all$foreignBorn)
+
+leaflet(data = mpls_all) %>% 
+  addProviderTiles(providers$Stamen.Terrain) %>% 
+  addPolygons(label = ~ BDNAME,
+             fillColor = ~pal_all(foreignBorn),
+             fillOpacity = 0.7) %>% 
+  addLegend(position = "bottomright", 
+            pal = pal_all, 
+            values = ~foreignBorn,
+            title = "Proportion of Foreign <Br>Born Residents")
+```
+
   
   
 ## GitHub link
